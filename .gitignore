@@ -20,6 +20,9 @@ htmlcov/
 
 # Editor and OS files
 .DS_Store
+backups/
+test_documents/
+tests/
 
 # Logs
 *.log

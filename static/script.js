@@ -14,6 +14,7 @@ const chatArea = document.getElementById("chatArea");
 const toast = document.getElementById("toast");
 const sidebar = document.querySelector(".sidebar");
 const conversationList = document.getElementById("conversationList");
+const systemStatus = document.getElementById("systemStatus");
 
 let isSending = false;
 let isUploading = false;
@@ -24,6 +25,34 @@ let activeConversationId = null;
 const uploadedDocuments = new Map();
 const HISTORY_KEY = "jarvis-chat-history-v1";
 const MAX_CONVERSATIONS = 30;
+
+async function updateSystemStatus() {
+  try {
+    const response = await fetch(`${API}/health`);
+    const data = await response.json().catch(() => ({}));
+    const statusText = systemStatus.querySelector(".system-status-text");
+    const unavailable = Object.entries(data.detail?.dependencies || {})
+      .filter(([, status]) => status !== "ok")
+      .map(([name]) => name)
+      .join(", ");
+
+    systemStatus.classList.toggle("offline", !response.ok);
+    statusText.textContent = response.ok
+      ? "AI system ready"
+      : "AI system unavailable";
+    systemStatus.title = response.ok
+      ? "Database and local AI models are ready"
+      : unavailable
+        ? `Unavailable: ${unavailable}`
+        : "Check that PostgreSQL and Ollama are running";
+  } catch (error) {
+    const statusText = systemStatus.querySelector(".system-status-text");
+    systemStatus.classList.add("offline");
+    statusText.textContent = "AI system offline";
+    systemStatus.title = "Could not connect to Jarvis";
+    console.error("System health check failed:", error);
+  }
+}
 
 // --------------------------------------------------
 // Notifications and chat helpers
@@ -864,4 +893,6 @@ renderConversations();
 if (activeConversationId) {
   openConversation(activeConversationId);
 }
+updateSystemStatus();
+window.setInterval(updateSystemStatus, 30000);
 loadDocuments();

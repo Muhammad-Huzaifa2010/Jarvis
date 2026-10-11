@@ -11,6 +11,7 @@
   --accent: #72e0c0;
   --accent-dark: #153e3c;
   --danger: #ff8f9a;
+  --success: #72e0c0;
 }
 
 * {
@@ -19,7 +20,9 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse at 78% 12%, #17243a66 0, transparent 35%),
+    var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
@@ -32,6 +35,14 @@ button, textarea {
 button {
   color: inherit;
   cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .app {
@@ -47,7 +58,7 @@ button {
   display: flex;
   flex-direction: column;
   padding: 24px 18px 16px;
-  background: var(--sidebar);
+  background: linear-gradient(180deg, #10182a, var(--sidebar) 40%);
   border-right: 1px solid var(--border);
   overflow-y: auto;
 }
@@ -67,7 +78,7 @@ button {
   width: 43px;
   height: 43px;
   border: 1px solid #438b83;
-  border-radius: 13px;
+  border-radius: 15px;
   color: var(--accent);
   font-size: 24px;
   font-weight: 700;
@@ -96,11 +107,16 @@ button {
   border: 1px solid var(--border);
   border-radius: 10px;
   text-align: left;
-  transition: border-color .2s;
+  transition: border-color .2s, background .2s, transform .2s;
 }
 
 .new-chat:hover, .suggestion:hover {
   border-color: var(--accent);
+}
+
+.new-chat:hover {
+  background: #19283a;
+  transform: translateY(-1px);
 }
 
 .new-chat span {
@@ -263,7 +279,14 @@ button {
   min-width: 0;
   padding: 10px;
   border-radius: 8px;
+  border: 1px solid transparent;
   background: #141d30;
+  transition: border-color .2s, background .2s;
+}
+
+.document-item:hover {
+  border-color: var(--border);
+  background: #18243a;
 }
 
 .file-icon {
@@ -361,6 +384,22 @@ button {
   border-radius: 20px;
   color: #c4d4e5;
   font-size: 11px;
+  transition: border-color .2s, color .2s, background .2s;
+}
+
+.model-badge .status-dot {
+  background: var(--success);
+}
+
+.model-badge.offline {
+  border-color: #78404b;
+  background: #321e2a66;
+  color: var(--danger);
+}
+
+.model-badge.offline .status-dot {
+  background: var(--danger);
+  box-shadow: 0 0 9px #ff8f9a55;
 }
 
 .chat-area {
@@ -438,7 +477,12 @@ button {
   border-radius: 11px;
   background: #10182a;
   text-align: left;
-  transition: border-color .2s, background .2s;
+  transition: border-color .2s, background .2s, transform .2s;
+}
+
+.suggestion:hover {
+  background: #17263a;
+  transform: translateY(-2px);
 }
 
 .suggestion > span:first-child {
@@ -509,7 +553,7 @@ button {
   padding: 13px 16px;
   border: 1px solid var(--border);
   border-radius: 4px 13px 13px 13px;
-  background: var(--panel);
+  background: linear-gradient(145deg, #172238, var(--panel));
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   line-height: 1.75;
@@ -518,7 +562,7 @@ button {
 
 .message.user .message-content {
   border-radius: 13px 4px 13px 13px;
-  background: #1b2940;
+  background: linear-gradient(145deg, #22334d, #19273d);
 }
 
 .message-label {
@@ -611,8 +655,9 @@ button {
   padding: 11px 12px 11px 17px;
   border: 1px solid #34445e;
   border-radius: 15px;
-  background: #131c2e;
-  box-shadow: 0 10px 40px #00000020;
+  background: #131c2eee;
+  box-shadow: 0 12px 45px #00000030;
+  backdrop-filter: blur(12px);
 }
 
 .composer:focus-within {
@@ -647,7 +692,12 @@ button {
   background: var(--accent);
   color: #092019;
   font-size: 26px;
-  transition: opacity .2s;
+  transition: opacity .2s, transform .2s, box-shadow .2s;
+}
+
+#sendBtn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 18px #72e0c055;
 }
 
 #sendBtn:disabled {
