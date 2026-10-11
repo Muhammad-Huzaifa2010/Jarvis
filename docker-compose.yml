@@ -1,0 +1,21 @@
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: jarvis-db
+    environment:
+      POSTGRES_DB: jarvis_db
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: jarvis1234
+    ports:
+      - "5434:5432"
+    volumes:
+      - jarvis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis -d jarvis_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  jarvis_data:

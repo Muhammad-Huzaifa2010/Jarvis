@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <title>Jarvis AI | Personal Knowledge Assistant</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <div class="brand-icon">J</div>
+        <div>
+          <h1>JARVIS</h1>
+          <span>PERSONAL AI ASSISTANT</span>
+        </div>
+      </a>
+
+      <button id="newChatBtn" class="new-chat">
+        <span>＋</span> New conversation
+      </button>
+
+      <div class="section-label">KNOWLEDGE BASE</div>
+
+      <label class="upload-box" for="fileInput" id="uploadBox">
+        <span class="upload-icon">↥</span>
+        <strong>Upload documents</strong>
+        <span>PDF, DOCX, TXT or Markdown</span>
+        <span class="browse">Choose a file</span>
+      </label>
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,.docx,.txt,.md"
+        hidden
+      >
+
+      <div id="uploadStatus" class="upload-status" aria-live="polite"></div>
+
+      <div class="documents-heading">
+        <span class="section-label">YOUR DOCUMENTS</span>
+      </div>
+
+      <div id="documentList" class="document-list">
+        <p class="empty-documents">
+          Upload a document to start building your knowledge base.
+        </p>
+      </div>
+
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <span>Local AI environment</span>
+        <span class="local-tag">LOCAL</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button id="mobileMenuBtn" class="mobile-menu" aria-label="Toggle sidebar">
+          ☰
+        </button>
+        <div>
+          <div class="topbar-title">Knowledge Assistant</div>
+          <div class="topbar-subtitle">Ask questions about your documents</div>
+        </div>
+        <div class="model-badge">
+          <span class="status-dot"></span>
+          Qwen · Local
+        </div>
+      </header>
+
+      <section class="chat-area" id="chatArea">
+        <div class="welcome" id="welcome">
+          <div class="orb"><span>J</span></div>
+          <div class="eyebrow">YOUR PERSONAL KNOWLEDGE AI</div>
+          <h2>What can I help you<br><span>understand today?</span></h2>
+          <p>Upload your documents, ask a question, and let Jarvis find the relevant information.</p>
+
+          <div class="suggestions">
+            <button class="suggestion" data-question="Summarize my uploaded documents">
+              <span>✧</span>
+              <span><strong>Summarize my documents</strong><small>Get the main ideas</small></span>
+              <span class="suggestion-arrow">↗</span>
+            </button>
+            <button class="suggestion" data-question="What are the most important points in my documents?">
+              <span>⌕</span>
+              <span><strong>Find key information</strong><small>Discover important details</small></span>
+              <span class="suggestion-arrow">↗</span>
+            </button>
+            <button class="suggestion" data-question="Explain a difficult concept from my documents in simple words">
+              <span>◇</span>
+              <span><strong>Explain a concept</strong><small>Learn in simple language</small></span>
+              <span class="suggestion-arrow">↗</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="messages" class="messages" aria-live="polite"></div>
+      </section>
+
+      <footer class="composer-wrap">
+        <form id="chatForm" class="composer">
+          <textarea
+            id="questionInput"
+            placeholder="Ask Jarvis anything about your documents..."
+            rows="1"
+            maxlength="2000"
+            aria-label="Your question"
+          ></textarea>
+          <button id="sendBtn" type="submit" aria-label="Send message">
+            <span>↑</span>
+          </button>
+        </form>
+        <div class="composer-hint">
+          <span>Enter to send · Shift + Enter for a new line</span>
+          <span>Powered by your local AI</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/static/script.js" defer></script>
+</body>
+</html>
