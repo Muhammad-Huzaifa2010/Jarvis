@@ -1,7 +1,9 @@
-from functools import lru_cache
 import asyncio
+import re
+from functools import lru_cache
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from langchain_ollama import OllamaEmbeddings
 from langchain_postgres import PGEngine, PGVectorStore
@@ -28,30 +30,55 @@ def get_pg_engine():
     return PGEngine.from_connection_string(
         url=DATABASE_URL
     )
-async def _table_exists(engine) -> bool:
-    async with engine._pool.connect() as connection:
-        result = await connection.execute(
-            text(
-                """
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public'
-                    AND table_name = :table_name
-                    AND table_schema = :schema_name
-                )
-                """
-            ),
-            {
-                "table_name": TABLE_NAME,
-                "schema_name": "public",
-            },
+
+
+@lru_cache(maxsize=1)
+def get_sql_engine():
+    return create_async_engine(DATABASE_URL)
+
+
+async def _existing_vector_dimension() -> int | None:
+    engine = create_async_engine(DATABASE_URL)
+    try:
+        async with engine.connect() as connection:
+            result = await connection.execute(
+                text(
+                    """
+                    SELECT
+                        to_regclass(:qualified_table)::text AS table_name,
+                        (
+                            SELECT format_type(
+                                attribute.atttypid,
+                                attribute.atttypmod
+                            )
+                            FROM pg_attribute AS attribute
+                            WHERE attribute.attrelid = to_regclass(:qualified_table)
+                                AND attribute.attname = 'embedding'
+                                AND NOT attribute.attisdropped
+                        ) AS vector_type
+                    """
+                ),
+                {"qualified_table": f"public.{TABLE_NAME}"},
+            )
+            row = result.mappings().one()
+    finally:
+        await engine.dispose()
+
+    if row["table_name"] is None:
+        return None
+
+    vector_type = row["vector_type"]
+    match = re.fullmatch(r"vector\((\d+)\)", vector_type or "")
+    if match is None:
+        raise RuntimeError(
+            f"Table '{TABLE_NAME}' exists but its embedding column "
+            f"has unexpected type {vector_type!r}."
         )
-        return bool(result.scalar_one())
+
+    return int(match.group(1))
 
 
-
-def initialize_database():
+def initialize_database() -> None:
     embeddings = get_embeddings()
 
     # Determine the embedding model's vector dimensions.
@@ -59,20 +86,24 @@ def initialize_database():
         embeddings.embed_query("Jarvis initialization test")
     )
 
-    engine = get_pg_engine()
-
-    table_exists = asyncio.run(_table_exists(engine))
-    if table_exists:
-        # Do not recreate or overwrite an existing table.
+    existing_dimension = asyncio.run(_existing_vector_dimension())
+    if existing_dimension is not None:
+        if existing_dimension != dimension:
+            raise RuntimeError(
+                f"Table '{TABLE_NAME}' uses {existing_dimension}-dimensional "
+                f"embeddings, but model '{EMBEDDING_MODEL}' produces "
+                f"{dimension}. Rebuild or migrate the vector table before "
+                "using this embedding model."
+            )
         print(
             f"Table '{TABLE_NAME}' already exists. "
-            f"Keeping existing data. "
-            f"Embedding dimensions: {dimension}"
+            f"Keeping existing data. Embedding dimensions: "
+            f"{existing_dimension}"
         )
         return
 
     # Create the table only when it does not exist.
-    engine.init_vectorstore_table(
+    get_pg_engine().init_vectorstore_table(
         table_name=TABLE_NAME,
         vector_size=dimension,
     )

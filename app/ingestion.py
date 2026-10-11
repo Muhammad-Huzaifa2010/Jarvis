@@ -14,7 +14,7 @@ from app.database import get_vector_store
 
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md", ".docx"}
 
-def ingest_document(filename: str, content: bytes) -> dict:
+def ingest_document(filename: str, content: bytes, document_id: str) -> dict:
     extension = Path(filename).suffix.lower()
 
 
@@ -55,6 +55,7 @@ def ingest_document(filename: str, content: bytes) -> dict:
 
         for document in documents:
             document.metadata["source"] = filename
+            document.metadata["document_id"] = document_id
 
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=CHUNK_SIZE,
@@ -71,12 +72,12 @@ def ingest_document(filename: str, content: bytes) -> dict:
         get_vector_store().add_documents(chunks)
 
         return {
-                "filename": filename,
-                "chunks_added": len(chunks),
-                "status": "success",
-            }
+            "document_id": document_id,
+            "filename": filename,
+            "chunks_added": len(chunks),
+            "status": "success",
+        }
 
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
-

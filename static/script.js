@@ -13,12 +13,17 @@ const welcome = document.getElementById("welcome");
 const chatArea = document.getElementById("chatArea");
 const toast = document.getElementById("toast");
 const sidebar = document.querySelector(".sidebar");
+const conversationList = document.getElementById("conversationList");
 
 let isSending = false;
 let isUploading = false;
 let isLoadingDocuments = false;
+let conversations = [];
+let activeConversationId = null;
 
 const uploadedDocuments = new Map();
+const HISTORY_KEY = "jarvis-chat-history-v1";
+const MAX_CONVERSATIONS = 30;
 
 // --------------------------------------------------
 // Notifications and chat helpers
@@ -49,15 +54,183 @@ function hideWelcome() {
   }
 }
 
+function saveConversationHistory() {
+  try {
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify({
+        activeConversationId,
+        conversations: conversations.slice(0, MAX_CONVERSATIONS),
+      })
+    );
+  } catch (error) {
+    console.error("Conversation history could not be saved:", error);
+    showToast("Chat history could not be saved in this browser.");
+  }
+}
+
+function loadConversationHistory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "{}");
+    if (!Array.isArray(saved.conversations)) return;
+
+    conversations = saved.conversations.filter(
+      (conversation) =>
+        conversation &&
+        typeof conversation.id === "string" &&
+        typeof conversation.title === "string" &&
+        Array.isArray(conversation.messages)
+    );
+
+    if (
+      typeof saved.activeConversationId === "string" &&
+      conversations.some(
+        (conversation) => conversation.id === saved.activeConversationId
+      )
+    ) {
+      activeConversationId = saved.activeConversationId;
+    }
+  } catch (error) {
+    console.error("Saved chat history could not be loaded:", error);
+    showToast("Saved chats could not be loaded.");
+  }
+}
+
+function createConversation(firstQuestion) {
+  const conversation = {
+    id: window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    title: firstQuestion.slice(0, 48),
+    updatedAt: Date.now(),
+    messages: [],
+  };
+
+  conversations.unshift(conversation);
+  conversations = conversations.slice(0, MAX_CONVERSATIONS);
+  activeConversationId = conversation.id;
+  return conversation;
+}
+
+function getActiveConversation() {
+  return conversations.find(
+    (conversation) => conversation.id === activeConversationId
+  );
+}
+
+function renderConversations() {
+  conversationList.replaceChildren();
+
+  if (conversations.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "conversation-empty";
+    empty.textContent = "Your saved chats will appear here.";
+    conversationList.appendChild(empty);
+    return;
+  }
+
+  for (const conversation of conversations) {
+    const item = document.createElement("div");
+    item.className = "conversation-item";
+    if (conversation.id === activeConversationId) {
+      item.classList.add("active");
+    }
+
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "conversation-open";
+    openButton.textContent = conversation.title || "New conversation";
+    openButton.title = conversation.title;
+    openButton.addEventListener("click", () => {
+      openConversation(conversation.id);
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "conversation-delete";
+    deleteButton.textContent = "×";
+    deleteButton.title = "Delete conversation";
+    deleteButton.setAttribute(
+      "aria-label",
+      `Delete conversation: ${conversation.title}`
+    );
+    deleteButton.addEventListener("click", () => {
+      deleteConversation(conversation.id);
+    });
+
+    item.append(openButton, deleteButton);
+    conversationList.appendChild(item);
+  }
+}
+
+function openConversation(conversationId) {
+  if (isSending) return;
+
+  const conversation = conversations.find(
+    (item) => item.id === conversationId
+  );
+  if (!conversation) return;
+
+  activeConversationId = conversationId;
+  messages.replaceChildren();
+  welcome.hidden = conversation.messages.length > 0;
+
+  let lastQuestion = null;
+  for (const entry of conversation.messages) {
+    if (!entry || typeof entry.text !== "string") continue;
+    if (entry.role === "user") {
+      lastQuestion = entry.text;
+    }
+    if (entry.role !== "user" && entry.role !== "assistant") continue;
+    addMessage(entry.role, entry.text, entry.sources || [], entry.citations || [], {
+      persist: false,
+      error: entry.error,
+      retryQuestion: entry.role === "assistant" ? lastQuestion : null,
+    });
+  }
+
+  renderConversations();
+  saveConversationHistory();
+  scrollToBottom();
+  sidebar.classList.remove("open");
+}
+
+function deleteConversation(conversationId) {
+  if (isSending) return;
+  if (!window.confirm("Delete this saved conversation? This cannot be undone.")) {
+    return;
+  }
+
+  conversations = conversations.filter(
+    (conversation) => conversation.id !== conversationId
+  );
+
+  if (activeConversationId === conversationId) {
+    activeConversationId = null;
+    messages.replaceChildren();
+    welcome.hidden = false;
+  }
+
+  renderConversations();
+  saveConversationHistory();
+}
+
 // --------------------------------------------------
 // Display chat messages and citations
 // --------------------------------------------------
 
-function addMessage(role, text, sources = [], citations = []) {
+function addMessage(
+  role,
+  text,
+  sources = [],
+  citations = [],
+  { persist = true, transient = false, error = false, retryQuestion = null } = {}
+) {
   hideWelcome();
 
   const message = document.createElement("article");
   message.className = `message ${role}`;
+  if (error) message.classList.add("message-error");
 
   const avatar = document.createElement("div");
   avatar.className = "avatar";
@@ -136,9 +309,8 @@ function addMessage(role, text, sources = [], citations = []) {
         const page = document.createElement("span");
         page.className = "citation-page";
 
-        // PDF loaders commonly use zero-based page indices.
-        // DOCX citations in the current API return null.
-        page.textContent = `Page ${Number(citation.page) + 1}`;
+        // The API normalizes PDF page indices to one-based numbers.
+        page.textContent = `Page ${Number(citation.page)}`;
 
         heading.appendChild(page);
       }
@@ -180,8 +352,58 @@ function addMessage(role, text, sources = [], citations = []) {
     content.appendChild(sourceBox);
   }
 
+  if (!transient) {
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.textContent = "Copy";
+    copyButton.setAttribute("aria-label", "Copy message");
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("Message copied.");
+      } catch (copyError) {
+        console.error("Could not copy message:", copyError);
+        showToast("Could not copy this message.");
+      }
+    });
+    actions.appendChild(copyButton);
+
+    if (role === "assistant" && retryQuestion) {
+      const retryButton = document.createElement("button");
+      retryButton.type = "button";
+      retryButton.textContent = "Try again";
+      retryButton.setAttribute("aria-label", "Try this question again");
+      retryButton.addEventListener("click", () => {
+        sendQuestion(retryQuestion, false);
+      });
+      actions.appendChild(retryButton);
+    }
+
+    content.appendChild(actions);
+  }
+
   message.append(avatar, content);
   messages.appendChild(message);
+
+  if (persist && !transient) {
+    const conversation = getActiveConversation();
+    if (conversation) {
+      conversation.messages.push({
+        role,
+        text,
+        sources,
+        citations,
+        error,
+      });
+      conversation.updatedAt = Date.now();
+      conversations.sort((left, right) => right.updatedAt - left.updatedAt);
+      renderConversations();
+      saveConversationHistory();
+    }
+  }
 
   scrollToBottom();
 
@@ -189,7 +411,13 @@ function addMessage(role, text, sources = [], citations = []) {
 }
 
 function addTypingIndicator() {
-  const message = addMessage("assistant", "Jarvis is thinking...");
+  const message = addMessage(
+    "assistant",
+    "Searching your documents",
+    [],
+    [],
+    { persist: false, transient: true }
+  );
 
   const body = message.querySelector(".message-body");
 
@@ -224,7 +452,8 @@ function renderDocuments() {
     return;
   }
 
-  for (const [name, count] of uploadedDocuments) {
+  for (const [id, entry] of uploadedDocuments) {
+    const { name, count } = entry;
     const item = document.createElement("div");
     item.className = "document-item";
 
@@ -257,7 +486,7 @@ function renderDocuments() {
     );
 
     deleteButton.addEventListener("click", () => {
-      deleteDocument(name, deleteButton);
+      deleteDocument(id, name, deleteButton);
     });
 
     details.append(title, meta);
@@ -296,8 +525,11 @@ async function loadDocuments() {
         Number.isFinite(Number(document.chunks))
       ) {
         uploadedDocuments.set(
-          document.filename,
-          Number(document.chunks)
+          document.id || `legacy:${document.filename}`,
+          {
+            name: document.filename,
+            count: Number(document.chunks),
+          }
         );
       }
     }
@@ -318,7 +550,7 @@ async function loadDocuments() {
 // Delete document
 // --------------------------------------------------
 
-async function deleteDocument(filename, button) {
+async function deleteDocument(documentId, filename, button) {
   const confirmed = window.confirm(
     `Delete "${filename}" and all its stored chunks? This cannot be undone.`
   );
@@ -329,7 +561,7 @@ async function deleteDocument(filename, button) {
 
   try {
     const response = await fetch(
-      `${API}/documents/${encodeURIComponent(filename)}`,
+      `${API}/documents?document_id=${encodeURIComponent(documentId)}`,
       { method: "DELETE" }
     );
 
@@ -446,16 +678,23 @@ async function uploadFile(file) {
 // Send chat question
 // --------------------------------------------------
 
-async function sendQuestion(question) {
+async function sendQuestion(question, recordQuestion = true) {
   const cleanedQuestion = question.trim();
 
   if (!cleanedQuestion || isSending) return;
 
+  if (recordQuestion) {
+    if (!getActiveConversation()) {
+      createConversation(cleanedQuestion);
+      renderConversations();
+      saveConversationHistory();
+    }
+    addMessage("user", cleanedQuestion);
+  }
+
   isSending = true;
   sendBtn.disabled = true;
   questionInput.disabled = true;
-
-  addMessage("user", cleanedQuestion);
 
   questionInput.value = "";
   questionInput.style.height = "auto";
@@ -482,21 +721,22 @@ async function sendQuestion(question) {
     }
 
     typingMessage.remove();
-console.log("Jarvis citations:", data.citations);
-console.log("Citation count:", data.citations?.length);
-    // Pass both sources and citations to the message renderer.
     addMessage(
       "assistant",
       data.answer || "Jarvis returned an empty answer.",
       Array.isArray(data.sources) ? data.sources : [],
-      Array.isArray(data.citations) ? data.citations : []
+      Array.isArray(data.citations) ? data.citations : [],
+      { retryQuestion: cleanedQuestion }
     );
   } catch (error) {
     typingMessage.remove();
 
     addMessage(
       "assistant",
-      `Sorry, I couldn't get an answer. ${error.message}`
+      `Sorry, I couldn't get an answer. ${error.message}`,
+      [],
+      [],
+      { error: true, retryQuestion: cleanedQuestion }
     );
 
     console.error("Chat error:", error);
@@ -586,10 +826,13 @@ document.querySelectorAll(".suggestion").forEach((button) => {
 document.getElementById("newChatBtn").addEventListener("click", () => {
   if (isSending) return;
 
+  activeConversationId = null;
   messages.replaceChildren();
   welcome.hidden = false;
 
   questionInput.value = "";
+  renderConversations();
+  saveConversationHistory();
   questionInput.focus();
 });
 
@@ -616,4 +859,9 @@ document.addEventListener("click", (event) => {
 // Load stored documents when the page opens
 // --------------------------------------------------
 
+loadConversationHistory();
+renderConversations();
+if (activeConversationId) {
+  openConversation(activeConversationId);
+}
 loadDocuments();

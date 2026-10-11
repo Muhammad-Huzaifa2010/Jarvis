@@ -2,22 +2,20 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from app.database import get_vector_store
+from uuid import uuid4
+
+import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-
-from app.ingestion import ingest_document
-from app.rag import answer_question
-
 from sqlalchemy import text
 
-from app.database import get_pg_engine
-
-
-
+from app.config import CHAT_MODEL, EMBEDDING_MODEL, OLLAMA_BASE_URL
+from app.database import get_sql_engine
+from app.ingestion import ingest_document
+from app.rag import answer_question
 
 # --------------------------------------------------
 # Configuration
@@ -99,8 +97,52 @@ def home():
 # --------------------------------------------------
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+async def health():
+    dependencies = {
+        "database": "ok",
+        "ollama": "ok",
+        "chat_model": "ok",
+        "embedding_model": "ok",
+    }
+
+    try:
+        async with get_sql_engine().connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except Exception:
+        logger.exception("Database health check failed")
+        dependencies["database"] = "unavailable"
+
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+            response.raise_for_status()
+            model_names = {
+                model.get("name")
+                for model in response.json().get("models", [])
+            }
+            for key, model_name in (
+                ("chat_model", CHAT_MODEL),
+                ("embedding_model", EMBEDDING_MODEL),
+            ):
+                if (
+                    model_name not in model_names
+                    and f"{model_name}:latest" not in model_names
+                ):
+                    dependencies[key] = "unavailable"
+    except Exception:
+        logger.exception("Ollama health check failed")
+        dependencies["ollama"] = "unavailable"
+        dependencies["chat_model"] = "unavailable"
+        dependencies["embedding_model"] = "unavailable"
+
+    healthy = all(status == "ok" for status in dependencies.values())
+    if not healthy:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "unhealthy", "dependencies": dependencies},
+        )
+
+    return {"status": "ok", "dependencies": dependencies}
 
 
 # --------------------------------------------------
@@ -139,11 +181,13 @@ async def upload_document(file: UploadFile = File(...)):
             )
 
         logger.info("Processing uploaded document: %s", filename)
+        document_id = str(uuid4())
 
         result = await run_in_threadpool(
             ingest_document,
             filename,
             content,
+            document_id,
         )
 
         logger.info("Document processed successfully: %s", filename)
@@ -202,35 +246,34 @@ def chat(request: ChatRequest):
             detail="Chat failed. Check server logs.",
         ) from error
 
+
 @app.get("/documents")
-def list_documents():
+async def list_documents():
     query = text(
         """
         SELECT
+            COALESCE(
+                langchain_metadata->>'document_id',
+                'legacy:' || (langchain_metadata->>'source')
+            ) AS id,
             langchain_metadata->>'source' AS filename,
             COUNT(*) AS chunks
         FROM jarvis_data
         WHERE langchain_metadata->>'source' IS NOT NULL
-        GROUP BY langchain_metadata->>'source'
-        ORDER BY filename
+        GROUP BY id, filename
+        ORDER BY filename, id
         """
     )
 
     try:
-        engine = get_pg_engine()
-
-        async def fetch_documents():
-            async with engine._pool.connect() as connection:
-                result = await connection.execute(query)
-                return result.mappings().all()
-
-        import asyncio
-
-        rows = asyncio.run(fetch_documents())
+        async with get_sql_engine().connect() as connection:
+            result = await connection.execute(query)
+            rows = result.mappings().all()
 
         return {
             "documents": [
                 {
+                    "id": row["id"],
                     "filename": row["filename"],
                     "chunks": row["chunks"],
                 }
@@ -245,63 +288,61 @@ def list_documents():
             status_code=500,
             detail="Could not retrieve documents.",
         ) from error
-        
 
-@app.delete("/documents/{filename}")
-def delete_document(filename: str):
+@app.delete("/documents")
+async def delete_document(document_id: str):
     """Delete one uploaded document and its associated chunks."""
-    filename = filename.strip()
+    document_id = document_id.strip()
 
-    if not filename:
+    if not document_id:
         raise HTTPException(
             status_code=400,
-            detail="Filename cannot be empty.",
+            detail="Document ID cannot be empty.",
         )
 
     try:
-        engine = get_pg_engine()
-
-        async def document_exists():
-            async with engine._pool.connect() as connection:
-                result = await connection.execute(
-                    text(
-                        """
-                        SELECT 1
-                        FROM jarvis_data
-                        WHERE langchain_metadata->>'source' = :filename
-                        LIMIT 1
-                        """
-                    ),
-                    {"filename": filename},
+        legacy_filename = (
+            document_id.removeprefix("legacy:")
+            if document_id.startswith("legacy:")
+            else None
+        )
+        query = text(
+            """
+            DELETE FROM jarvis_data
+            WHERE langchain_metadata->>'document_id' = :document_id
+                OR (
+                    :legacy_filename IS NOT NULL
+                    AND langchain_metadata->>'source' = :legacy_filename
+                    AND langchain_metadata->>'document_id' IS NULL
                 )
-                return result.scalar() is not None
+            RETURNING langchain_metadata->>'source' AS filename
+            """
+        )
+        async with get_sql_engine().begin() as connection:
+            result = await connection.execute(
+                query,
+                {
+                    "document_id": document_id,
+                    "legacy_filename": legacy_filename,
+                },
+            )
+            row = result.mappings().first()
 
-        import asyncio
-
-        if not asyncio.run(document_exists()):
+        if row is None:
             raise HTTPException(
                 status_code=404,
-                detail=f"Document '{filename}' was not found.",
+                detail="Document was not found.",
             )
 
-        store = get_vector_store()
-        deleted = store.delete(
-            filter={"source": filename}
+        logger.info(
+            "Deleted document %s (%s)", document_id, row["filename"]
         )
-
-        if deleted is False:
-            raise HTTPException(
-                status_code=500,
-                detail="The vector store could not confirm deletion.",
-            )
-
-        logger.info("Deleted document: %s", filename)
 
         return {
             "message": "Document deleted successfully.",
-            "filename": filename,
+            "document_id": document_id,
+            "filename": row["filename"],
         }
-
     except HTTPException:
         raise
     except Exception as error:

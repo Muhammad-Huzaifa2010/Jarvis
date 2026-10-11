@@ -93,6 +93,7 @@ def answer_question(question: str) -> dict:
 
         citations.append({
             "reference": reference,
+            "document_id": document.metadata.get("document_id"),
             "filename": source,
             "page": display_page,
             "excerpt": content[:500],
