@@ -1,11 +1,25 @@
-.venv/
-venv/
-__pycache__/
+# Python
 *.py[cod]
+__pycache__/
+*.egg-info/
+
+# Virtual environments
+.venv/
+.venv-test/
+venv/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local environment and secrets
 .env
 .env.*
 !.env.example
-.pytest_cache/
+
+# Editor and OS files
 .DS_Store
-node_modules/
-dist/
+
+# Logs
+*.log

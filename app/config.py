@@ -39,7 +39,7 @@ EMBEDDING_MODEL = required_env("EMBEDDING_MODEL")
 
 CHUNK_SIZE = positive_int("CHUNK_SIZE", 1000)
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
-RETRIEVAL_K = positive_int("RETRIEVAL_K", 4)
+RETRIEVAL_K = positive_int("RETRIEVAL_K", 6)
 
 if not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:
     raise ValueError(

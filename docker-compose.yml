@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_DB: jarvis_db
       POSTGRES_USER: jarvis
-      POSTGRES_PASSWORD: jarvis1234
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5434:5432"
+      - "127.0.0.1:5434:5432"
     volumes:
       - jarvis_data:/var/lib/postgresql/data
     healthcheck:

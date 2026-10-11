@@ -356,6 +356,15 @@
         "documentation": {}
     },
     {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
         "label": "StrOutputParser",
         "importPath": "langchain_core.output_parsers",
         "description": "langchain_core.output_parsers",
@@ -403,7 +412,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "DATABASE_URL = required_env(\"DATABASE_URL\")\nOLLAMA_BASE_URL = required_env(\"OLLAMA_BASE_URL\").rstrip(\"/\")\nCHAT_MODEL = required_env(\"CHAT_MODEL\")\nEMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"",
+        "peekOfCode": "DATABASE_URL = required_env(\"DATABASE_URL\")\nOLLAMA_BASE_URL = required_env(\"OLLAMA_BASE_URL\").rstrip(\"/\")\nCHAT_MODEL = required_env(\"CHAT_MODEL\")\nEMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"",
         "detail": "app.config",
         "documentation": {}
     },
@@ -412,7 +421,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "OLLAMA_BASE_URL = required_env(\"OLLAMA_BASE_URL\").rstrip(\"/\")\nCHAT_MODEL = required_env(\"CHAT_MODEL\")\nEMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
+        "peekOfCode": "OLLAMA_BASE_URL = required_env(\"OLLAMA_BASE_URL\").rstrip(\"/\")\nCHAT_MODEL = required_env(\"CHAT_MODEL\")\nEMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
         "detail": "app.config",
         "documentation": {}
     },
@@ -421,7 +430,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "CHAT_MODEL = required_env(\"CHAT_MODEL\")\nEMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
+        "peekOfCode": "CHAT_MODEL = required_env(\"CHAT_MODEL\")\nEMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
         "detail": "app.config",
         "documentation": {}
     },
@@ -430,7 +439,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "EMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
+        "peekOfCode": "EMBEDDING_MODEL = required_env(\"EMBEDDING_MODEL\")\nCHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
         "detail": "app.config",
         "documentation": {}
     },
@@ -439,7 +448,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "CHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
+        "peekOfCode": "CHUNK_SIZE = positive_int(\"CHUNK_SIZE\", 1000)\nCHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
         "detail": "app.config",
         "documentation": {}
     },
@@ -448,7 +457,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "CHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
+        "peekOfCode": "CHUNK_OVERLAP = int(os.getenv(\"CHUNK_OVERLAP\", \"200\"))\nRETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
         "detail": "app.config",
         "documentation": {}
     },
@@ -457,7 +466,7 @@
         "kind": 5,
         "importPath": "app.config",
         "description": "app.config",
-        "peekOfCode": "RETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 4)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
+        "peekOfCode": "RETRIEVAL_K = positive_int(\"RETRIEVAL_K\", 6)\nif not 0 <= CHUNK_OVERLAP < CHUNK_SIZE:\n    raise ValueError(\n        \"CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE.\"\n    )",
         "detail": "app.config",
         "documentation": {}
     },
@@ -637,7 +646,7 @@
         "kind": 5,
         "importPath": "app.rag",
         "description": "app.rag",
-        "peekOfCode": "prompt = ChatPromptTemplate.from_template(\n    \"\"\"\nYou are Jarvis, a efficient detailed question-answering assistant.\nAnswer the user's question using  the supplied document context.\nBe clear and helpful. If the context does not contain the answer,\nsay that you could not find the answer in the uploaded documents.\nDo not invent facts or citations.\nEach context section has a source reference such as [S1].\nWhen useful, refer to sources in your answer using that reference,\nfor example [S1].",
+        "peekOfCode": "prompt = ChatPromptTemplate.from_template(\n    \"\"\"\nYou are Jarvis, a document-grounded question-answering assistant.\nSTRICT RULES:\n1. Answer using only the supplied document context.\n2. Use only the supplied context to support factual claims.\n3. Cite every important factual claim using exact references\nsuch as [S1] or [S2].\n4. Never use numeric-only citations such as [1] or [3].\n5. Never invent or modify source references.",
         "detail": "app.rag",
         "documentation": {}
     },
