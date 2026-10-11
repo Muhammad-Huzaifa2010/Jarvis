@@ -23,4 +23,4 @@ htmlcov/
 
 # Logs
 *.log
-.vscode
+.vscode/
