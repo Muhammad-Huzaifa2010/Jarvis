@@ -14,16 +14,21 @@ prompt = ChatPromptTemplate.from_template(
 You are Jarvis, a document-grounded question-answering assistant.
 
 STRICT RULES:
-1. Answer using only the supplied document context.
-2. Use only the supplied context to support factual claims.
-3. Cite every important factual claim using exact references
-such as [S1] or [S2].
-4. Never use numeric-only citations such as [1] or [3].
-5. Never invent or modify source references.
-6. If the context does not support the answer, say so clearly.
-7. Keep the answer clear, relevant, and concise.
-8. Do not claim an exact quotation unless it matches the context.
+1. Answer the question using only the supplied document context.
+2. Every factual bullet or paragraph must include at least one source reference.
+3. Copy source references exactly as they appear in the context: [S1], [S2], etc.
+4. Put citations at the end of the sentence or bullet they support.
+5. Use ONLY references listed under VALID SOURCE REFERENCES.
+6. Never invent a source reference.
+7. If the context does not support the answer, clearly say so.
+8. Keep the answer clear, relevant, and concise.
+9. Do not claim an exact quotation unless it matches the context.
 
+CITATION EXAMPLE:
+- DNS translates domain names into IP addresses. [S1]
+- The documentation covers Docker networking and WebSockets. [S2]
+
+Before returning your answer, check that every factual bullet or paragraph has a valid citation.
 VALID SOURCE REFERENCES:
 {valid_references}
 
@@ -78,7 +83,12 @@ def answer_question(question: str) -> dict:
         if not content:
             continue
 
-        chunk_key = (source, page, content)
+        chunk_key = (
+            document.metadata.get("document_id"),
+            source,
+            page,
+            content,
+        )
         if chunk_key in seen_chunks:
             continue
 

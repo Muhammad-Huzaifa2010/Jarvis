@@ -289,6 +289,7 @@ async def list_documents():
             detail="Could not retrieve documents.",
         ) from error
 
+
 @app.delete("/documents")
 async def delete_document(document_id: str):
     """Delete one uploaded document and its associated chunks."""
@@ -311,7 +312,7 @@ async def delete_document(document_id: str):
             DELETE FROM jarvis_data
             WHERE langchain_metadata->>'document_id' = :document_id
                 OR (
-                    :legacy_filename IS NOT NULL
+                    CAST(:legacy_filename AS TEXT) IS NOT NULL
                     AND langchain_metadata->>'source' = :legacy_filename
                     AND langchain_metadata->>'document_id' IS NULL
                 )
