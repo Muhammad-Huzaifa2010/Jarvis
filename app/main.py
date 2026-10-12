@@ -219,8 +219,9 @@ async def upload_document(file: UploadFile = File(...)):
 # Chat
 # --------------------------------------------------
 
+
 @app.post("/chat")
-def chat(request: ChatRequest):
+async def chat(request: ChatRequest):
     question = request.question.strip()
 
     if not question:
@@ -229,8 +230,68 @@ def chat(request: ChatRequest):
             detail="Question cannot be empty.",
         )
 
+    normalized_question = " ".join(question.lower().split())
+
+    inventory_phrases = (
+        "what documents are available",
+        "which documents are available",
+        "list the documents",
+        "list all documents",
+        "show me the documents",
+        "what files are uploaded",
+        "which files are uploaded",
+        "how many documents",
+        "documents in the knowledge base",
+    )
+
     try:
-        return answer_question(question)
+        if any(
+            phrase in normalized_question
+            for phrase in inventory_phrases
+        ):
+            inventory = await list_documents()
+            documents = inventory["documents"]
+
+            if not documents:
+                return {
+                    "answer": (
+                        "There are currently no documents "
+                        "in the knowledge base."
+                    ),
+                    "sources": [],
+                    "citations": [],
+                }
+
+            document_lines = [
+                (
+                    f"- {document['filename']} "
+                    f"({document['chunks']} chunks)"
+                )
+                for document in documents
+            ]
+
+            answer = (
+                f"There are {inventory['total']} documents "
+                "in the knowledge base:\n"
+                + "\n".join(document_lines)
+            )
+
+            return {
+                "answer": answer,
+                "sources": [
+                    document["filename"]
+                    for document in documents
+                ],
+                "citations": [],
+            }
+
+        return await run_in_threadpool(
+            answer_question,
+            question,
+        )
+
+    except HTTPException:
+        raise
 
     except ValueError as error:
         raise HTTPException(

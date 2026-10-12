@@ -2,6 +2,21 @@
 
 Local document question-answering with FastAPI, PostgreSQL/pgvector, and Ollama.
 
+## Project map
+
+- `app/main.py` — FastAPI routes for chat, health, and document management.
+- `app/ingestion.py` — reads uploaded files and splits them into chunks.
+- `app/rag.py` — retrieves document chunks, asks Ollama, and checks citations.
+- `app/database.py` — PostgreSQL connections, vector storage, and setup.
+- `app/config.py` — reads settings from `.env`.
+- `static/` — the web page, styling, JavaScript, and favicon.
+- `tests/` — automated checks for the API, ingestion, and RAG behavior.
+- `docker-compose.yml` — starts the local PostgreSQL/pgvector database.
+
+Start with `app/main.py` for API behavior, `app/ingestion.py` for uploads, or
+`app/rag.py` for answers. Keep local secrets in `.env`; only share
+`.env.example`.
+
 ## Run locally
 
 1. Create and activate a virtual environment, then install dependencies:
@@ -53,8 +68,10 @@ vectors, so back up or re-upload documents before doing so.
 
 ## Checks
 
-Compile-check the application modules:
+Run the tests using the project virtual environment, then compile-check the
+application modules:
 
 ```sh
+.venv/bin/python -m pytest
 python -m compileall -q app init_db.py
 ```
